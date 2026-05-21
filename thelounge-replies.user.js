@@ -40,7 +40,7 @@
 
         // Truncation of the quoted message
         truncate: true,          // false = never truncate
-        truncateLength: 100,     // chars before … is appended
+        truncateLength: 75,     // chars before … is appended
 
         // Line-break handling inside the quoted message: "truncate" | "collapse" | "none"
         lineBreakMode: 'truncate',
