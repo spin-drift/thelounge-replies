@@ -1,0 +1,11 @@
+<img width="791" height="137" alt="thelounge-replies-example1" src="https://github.com/user-attachments/assets/0d9fc3a1-ebf7-4254-9a9e-e64e5912718d" />
+
+Allows for customizable message reply behavior in TheLounge.
+
+### Installation
+
+Pull up the raw [thelounge-replies.user.js](https://github.com/spin-drift/thelounge-replies/raw/refs/heads/main/thelounge-replies.user.js) with [Tampermonkey](https://www.tampermonkey.net) or any userscript manager installed. No TM-specific grants are required.
+
+### Customization
+
+Most behavior is customizable in the first few lines of the script, with detailed explanations of each, and reasonable defaults.
