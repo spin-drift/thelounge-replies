@@ -61,7 +61,7 @@
 
         // Separator string shown between the quoted message and your reply.
         // The separator is never styled or wrapped in quotes.
-        separator: '::', // Other fun options: '⇒', '➠',
+        separator: '|', // Other good options: '::', '⇒', '➠',
 
         // Wrap the quoted message text in quote marks (e.g. "hello there")
         addQuotes: true,
