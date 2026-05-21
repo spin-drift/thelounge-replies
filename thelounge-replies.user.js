@@ -10,6 +10,7 @@
 // ==/UserScript==
 
 // Thanks to greglechin, Ether, lejosh, DAWG for testing and suggestions
+// "lounge best" –corigins
 
 (function () {
     'use strict';
