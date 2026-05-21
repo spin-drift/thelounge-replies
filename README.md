@@ -17,7 +17,10 @@ Most behavior is customizable in the first few lines of the script, with detaile
 
 ### Roadmap
 
-[ ] Allow replies to /me actions
-[ ] Bypass truncate behavior for specific messages
-[ ] Integrate into [thelounge-shoutbox-beautifier](https://github.com/spin-drift/thelounge-shoutbox-beautifier)
-[ ] Register action in context menu (AKA mobile support)
+- [ ] Allow replies to /me actions
+
+- [ ] Bypass truncate behavior for specific messages
+
+- [ ] Integrate into [thelounge-shoutbox-beautifier](https://github.com/spin-drift/thelounge-shoutbox-beautifier)
+
+- [ ] Register action in context menu (AKA mobile support)
