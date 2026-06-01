@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Replies for TheLounge
 // @namespace    https://thelounge.chat/
-// @version      1.0.0
+// @version      1.1.0
 // @description  Quote messages in chat
 // @match        *://your-thelounge-domain.com/*
 // @author       spindrift
@@ -10,6 +10,7 @@
 // ==/UserScript==
 
 // Thanks to greglechin, Ether, lejosh, DAWG for testing and suggestions
+// Thanks to lizzie for inspiring me to add mobile support faster
 // "lounge best" –corigins
 
 (function () {
@@ -28,6 +29,11 @@
 
         // Padding (in px) from the .msg edge for "right-edge" / "left-edge".
         edgePadding: 5,
+
+        // Delay (in ms) the pointer must dwell over a message before the ↩
+        // button appears. Keeps the button from flickering in as the cursor
+        // sweeps across the log. Set to 0 to show it immediately on hover.
+        hoverDelay: 250,
 
         // Strip URL protocols (https://, http://, etc.) from the quoted text.
         // Helps avoid re-triggering link previews when the reply is sent.
@@ -76,6 +82,11 @@
         //   "[", "]"  -> [username]
         usernamePrefix: '',
         usernameSuffix: ':',
+
+        // Reveal the ↩ button when a message is tapped. This is the primary
+        // entrypoint on touch devices, where hover isn't available. Mouse
+        // users keep the hover-dwell behavior regardless of this setting.
+        tapToReveal: true,
     };
 
     // ---------------------------------------------------------------------
@@ -244,6 +255,16 @@
         setInputValue(textarea, next);
     }
 
+    // Quote a whole .msg element (resolve username + content, then insert).
+    // Shared by the inline button and the context-menu action.
+    function quoteMessageEl(msgEl) {
+        const userEl = msgEl.querySelector('.user');
+        const contentEl = msgEl.querySelector('.content');
+        if (!userEl || !contentEl) return;
+        const username = userEl.getAttribute('data-name') || userEl.textContent.trim();
+        insertQuote(username, getMessageText(contentEl));
+    }
+
     // ---------------------------------------------------------------------
     // Button rendering
     // ---------------------------------------------------------------------
@@ -339,6 +360,9 @@
             .msg:hover .tl-reply-btn {
                 opacity: 0.55;
             }
+            .msg.tl-reply-revealed .tl-reply-btn {
+                opacity: 0.7;
+            }
             .msg .tl-reply-btn:hover {
                 opacity: 1 !important;
             }
@@ -363,19 +387,155 @@
     }
 
     // ---------------------------------------------------------------------
-    // Event wiring (delegated mouseover)
+    // Event wiring (delegated mouseover with a short dwell timer)
     // ---------------------------------------------------------------------
+    // The button only appears after the pointer has lingered over a message
+    // for CONFIG.hoverDelay ms. This avoids buttons flickering in across
+    // every message the cursor sweeps over. We track a single pending timer
+    // and cancel it if the pointer leaves the message before it fires.
+
+    let pendingMsg = null;
+    let pendingTimer = null;
+
+    function clearPending() {
+        if (pendingTimer !== null) {
+            clearTimeout(pendingTimer);
+            pendingTimer = null;
+        }
+        pendingMsg = null;
+    }
+
     function onMouseOver(e) {
         const msg = e.target.closest && e.target.closest('.msg');
-        if (!msg) return;
-        // Only handle normal messages for v1 (skip actions, joins, parts, etc.)
-        if (msg.getAttribute('data-type') !== 'message') return;
+        if (!msg) {
+            clearPending();
+            return;
+        }
+        // Only handle normal messages (skip actions, joins, parts, etc.)
+        if (msg.getAttribute('data-type') !== 'message') {
+            clearPending();
+            return;
+        }
+        // Button already exists — nothing to schedule.
+        if (msg.querySelector('.tl-reply-btn')) return;
+        // Already waiting on this same message.
+        if (msg === pendingMsg) return;
+
+        // New target: reset any pending timer and start a fresh dwell.
+        clearPending();
+        if (CONFIG.hoverDelay > 0) {
+            pendingMsg = msg;
+            pendingTimer = setTimeout(() => {
+                pendingTimer = null;
+                pendingMsg = null;
+                // Confirm the pointer is still over this message before showing.
+                if (msg.matches(':hover')) {
+                    ensureButton(msg);
+                }
+            }, CONFIG.hoverDelay);
+        } else {
+            ensureButton(msg);
+        }
+    }
+
+    function onMouseOut(e) {
+        // If the pointer leaves the message we were waiting on, cancel.
+        if (!pendingMsg) return;
+        const related = e.relatedTarget;
+        if (!related || !pendingMsg.contains(related)) {
+            clearPending();
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Tap to reveal (primary entrypoint on mobile)
+    // ---------------------------------------------------------------------
+    // On touch devices hover doesn't exist, so the first tap on a message
+    // reveals its ↩ button, and a second tap on the same message fires the
+    // reply (double-tap to reply). Tapping a different message moves the
+    // reveal there; tapping empty space clears it.
+    //
+    // We use touchend (not click) so this only triggers from real touch
+    // input — mouse users keep the hover-dwell behavior and never get a
+    // sticky button from an ordinary click. A small movement threshold
+    // distinguishes a tap from a scroll, and taps on the button itself or
+    // on interactive content (links, etc.) are left alone.
+
+    let touchStartXY = null;
+    let revealedMsg = null;
+
+    // Max finger travel (px) between touchstart and touchend to still count
+    // as a tap rather than a scroll/swipe.
+    const TAP_MOVE_TOLERANCE = 10;
+
+    function clearRevealed() {
+        if (revealedMsg) {
+            revealedMsg.classList.remove('tl-reply-revealed');
+            revealedMsg = null;
+        }
+    }
+
+    function onTouchStart(e) {
+        if (e.touches && e.touches.length === 1) {
+            touchStartXY = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else {
+            touchStartXY = null; // multi-touch / gesture — ignore
+        }
+    }
+
+    function onTouchEnd(e) {
+        const start = touchStartXY;
+        touchStartXY = null;
+        if (!start) return;
+
+        // Reject if the finger moved too far (scroll, not a tap).
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (touch) {
+            const dx = Math.abs(touch.clientX - start.x);
+            const dy = Math.abs(touch.clientY - start.y);
+            if (dx > TAP_MOVE_TOLERANCE || dy > TAP_MOVE_TOLERANCE) return;
+        }
+
+        const target = e.target;
+
+        // Let taps on the button itself, links, and other interactive bits
+        // behave normally — don't hijack them as reveal toggles.
+        if (target.closest('.tl-reply-btn')) return;
+        if (target.closest('a, button, input, textarea, select, label, .preview')) {
+            return;
+        }
+
+        const msg = target.closest && target.closest('.msg');
+
+        // Tap outside any message clears the current reveal.
+        if (!msg || msg.getAttribute('data-type') !== 'message') {
+            clearRevealed();
+            return;
+        }
+
+        // Second tap on the already-revealed message fires the reply
+        // (double-tap to reply). The first tap revealed the arrow.
+        if (msg === revealedMsg) {
+            quoteMessageEl(msg);
+            clearRevealed();
+            return;
+        }
+
+        // First tap: reveal the arrow (moving the reveal from any prior one).
+        clearRevealed();
         ensureButton(msg);
+        msg.classList.add('tl-reply-revealed');
+        revealedMsg = msg;
     }
 
     function init() {
         injectStyles();
         document.addEventListener('mouseover', onMouseOver, true);
+        document.addEventListener('mouseout', onMouseOut, true);
+        if (CONFIG.tapToReveal) {
+            document.addEventListener('touchstart', onTouchStart, true);
+            document.addEventListener('touchend', onTouchEnd, true);
+        }
     }
 
     if (document.readyState === 'loading') {
