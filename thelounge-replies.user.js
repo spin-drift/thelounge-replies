@@ -256,7 +256,6 @@
     }
 
     // Quote a whole .msg element (resolve username + content, then insert).
-    // Shared by the inline button and the context-menu action.
     function quoteMessageEl(msgEl) {
         const userEl = msgEl.querySelector('.user');
         const contentEl = msgEl.querySelector('.content');
