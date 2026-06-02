@@ -4,16 +4,21 @@
 
 <img width="600" alt="Screenshot-2026-05-21 12 54 53" src="https://github.com/user-attachments/assets/aa782e31-25fb-4e48-a068-738671398d4e" />
 
-
 Allows for customizable message reply behavior in TheLounge.
 
 ### Installation
 
 Pull up the raw [thelounge-replies.user.js](https://github.com/spin-drift/thelounge-replies/raw/refs/heads/main/thelounge-replies.user.js) with [Tampermonkey](https://www.tampermonkey.net) or any userscript manager installed. No TM-specific grants are required.
 
-### Customization
+### Settings
 
 Most behavior is customizable in the first few lines of the script, with detailed explanations of each, and reasonable defaults.
+
+### Usage
+
+**Desktop:** Hover over messages to see the reply arrow. You can customize the time before the arrow appears by editing `hoverDelay` in the code (default: 250ms).
+
+**Mobile:** Tap any message to activate the reply arrow. You can tap the reply arrow, or just tap the message again to trigger a reply.
 
 ### Roadmap
 
@@ -23,4 +28,4 @@ Most behavior is customizable in the first few lines of the script, with detaile
 
 - [ ] Integrate into [thelounge-shoutbox-beautifier](https://github.com/spin-drift/thelounge-shoutbox-beautifier)
 
-- [ ] Register action in context menu (AKA mobile support)
+- [x] Mobile support
